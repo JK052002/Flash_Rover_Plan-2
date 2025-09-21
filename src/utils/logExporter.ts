@@ -1,9 +1,5 @@
-export interface LogEntry {
-  timestamp: string;
-  lat: number;
-  lng: number;
-  event: string;
-}
+
+import { LogEntry } from '../types';
 
 export const exportLogsToCSV = (logEntries: LogEntry[]) => {
   if (logEntries.length === 0) {

@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useCallback } from 'react';
 import { FolderIcon } from './icons/FolderIcon';
 import { LoadingIcon } from './icons/LoadingIcon';
@@ -5,10 +6,11 @@ import { SuccessIcon } from './icons/SuccessIcon';
 import { ErrorIcon } from './icons/ErrorIcon';
 import { parseMissionFile } from '../utils/missionParser';
 import { ParsedWaypoint } from '../utils/missionParser';
-import { Waypoint } from '../types';
+import { Waypoint, MissionLog } from '../types';
+import LogManager from './LogManager';
 
 type MissionControlsProps = {
-  onMissionUpload: (waypoints: Waypoint[]) => void;
+  onMissionUpload: (waypoints: Waypoint[], fileName: string) => void;
   onUploadInitiated: () => void;
   onClearMission: () => void;
   roverMode: string;
@@ -16,6 +18,7 @@ type MissionControlsProps = {
   isConnected: boolean;
   onChangeMode: (mode: string) => void;
   onArmDisarm: () => void;
+  missionLogs: MissionLog[];
 };
 
 type UploadState = 'idle' | 'parsing' | 'completed' | 'error';
@@ -31,6 +34,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
   isConnected,
   onChangeMode,
   onArmDisarm,
+  missionLogs,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -76,7 +80,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
           id: index + 1,
           command: wp.command || 'WAYPOINT',
       }));
-      onMissionUpload(mission);
+      onMissionUpload(mission, file.name);
       setUploadState('completed');
     } catch (error) {
       console.error("Error parsing mission file:", error);
@@ -110,7 +114,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
     if (uploadState !== 'parsing' && uploadState !== 'completed') {
       processFiles(e.dataTransfer.files);
     }
-  }, [uploadState]);
+  }, [uploadState, processFiles]);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -123,94 +127,100 @@ const MissionControls: React.FC<MissionControlsProps> = ({
   const isArmed = roverStatus === 'armed';
 
   return (
-    <div className="bg-[#111827] p-4 rounded-lg flex flex-col gap-5">
-      <h2 className="text-lg font-bold text-white">Mission Controls</h2>
-      
-      <div 
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        className={`bg-[#1F2937] border border-dashed border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-all ${isDragging ? 'border-green-500 scale-105' : ''} ${(uploadState === 'parsing') ? 'cursor-default' : 'cursor-pointer'}`}
-      >
-        <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => processFiles(e.target.files)} accept=".waypoint,.csv,.dxf" disabled={uploadState === 'parsing'} />
-
-        {(uploadState === 'idle' || (uploadState === 'completed' && !fileInfo)) && (
-          <div onClick={handleClick} className="w-full">
-            <FolderIcon className="w-12 h-12 text-orange-500 mb-2 mx-auto" />
-            <p className="font-semibold text-orange-400">Upload Mission File</p>
-            <p className="text-xs text-gray-400">.waypoint, .csv, .dxf</p>
-          </div>
-        )}
-
-        {uploadState === 'parsing' && (
-            <div className="flex flex-col items-center gap-3">
-                <LoadingIcon className="w-10 h-10 text-orange-500" />
-                <p className="font-semibold text-orange-400">Converting...</p>
-                {fileInfo && <p className="text-xs text-gray-400 truncate max-w-full px-2">{fileInfo.name}</p>}
-            </div>
-        )}
+    <div className="bg-[#111827] p-4 rounded-lg flex flex-col h-full">
+      <div className="flex flex-col gap-5">
+        <h2 className="text-lg font-bold text-white flex-shrink-0">Mission Controls</h2>
         
-        {uploadState === 'completed' && fileInfo && (
-            <div className="flex flex-col items-center gap-2 w-full">
-                <SuccessIcon className="w-10 h-10 text-green-500" />
-                <p className="font-semibold text-green-400">Mission Loaded</p>
-                <p className="text-sm text-gray-300 truncate max-w-full px-2 font-mono" title={fileInfo.name}>{fileInfo.name}</p>
-                <p className="text-xs text-gray-500">{formatFileSize(fileInfo.size)}</p>
-                <div className="mt-3 w-full flex flex-col gap-2">
-                    <button onClick={handleClick} className="w-full bg-gray-600 text-gray-200 text-sm font-bold py-2 rounded-lg hover:bg-gray-700 transition-colors">Upload Another</button>
-                    <button onClick={handleRemoveMission} className="w-full bg-red-800 text-red-100 text-sm font-bold py-2 rounded-lg hover:bg-red-700 transition-colors">Remove Mission</button>
-                </div>
-            </div>
-        )}
+        <div 
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+          className={`bg-[#1F2937] border border-dashed border-gray-600 rounded-lg p-6 flex flex-col items-center justify-center text-center transition-all flex-shrink-0 ${isDragging ? 'border-green-500 scale-105' : ''} ${(uploadState === 'parsing') ? 'cursor-default' : 'cursor-pointer'}`}
+        >
+          <input type="file" ref={fileInputRef} className="hidden" onChange={(e) => processFiles(e.target.files)} accept=".waypoint,.csv,.dxf" disabled={uploadState === 'parsing'} />
 
-        {uploadState === 'error' && (
-            <div className="flex flex-col items-center gap-2 w-full">
-                <ErrorIcon className="w-10 h-10 text-red-500" />
-                <p className="font-semibold text-red-400">Upload Failed</p>
-                <p className="text-xs text-gray-400 text-center max-w-full px-2">{errorMessage}</p>
-                <button onClick={resetUploaderUI} className="mt-3 w-full bg-gray-600 text-gray-200 text-sm font-bold py-2 rounded-lg hover:bg-gray-700 transition-colors">Try Again</button>
+          {(uploadState === 'idle' || (uploadState === 'completed' && !fileInfo)) && (
+            <div onClick={handleClick} className="w-full">
+              <FolderIcon className="w-12 h-12 text-orange-500 mb-2 mx-auto" />
+              <p className="font-semibold text-orange-400">Upload Mission File</p>
+              <p className="text-xs text-gray-400">.waypoint, .csv, .dxf</p>
             </div>
-        )}
-      </div>
+          )}
 
-      <div>
-        <label htmlFor="mode-select" className="block text-sm font-medium text-gray-300 mb-1">Mode</label>
-        <div className="relative">
-          <select 
-            id="mode-select" 
-            value={roverMode}
-            onChange={(e) => onChangeMode(e.target.value)}
-            disabled={!isConnected}
-            className="w-full bg-[#1F2937] border border-gray-600 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-800 disabled:cursor-not-allowed"
-          >
-            {ROVER_MODES.map(mode => (
-              <option key={mode} value={mode}>{mode}</option>
-            ))}
-             {/* If rover reports a mode not in our list, show it but disabled */}
-            {!ROVER_MODES.includes(roverMode) && roverMode !== 'UNKNOWN' && (
-              <option key={roverMode} value={roverMode} disabled>{roverMode}</option>
-            )}
-          </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
-            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+          {uploadState === 'parsing' && (
+              <div className="flex flex-col items-center gap-3">
+                  <LoadingIcon className="w-10 h-10 text-orange-500" />
+                  <p className="font-semibold text-orange-400">Converting...</p>
+                  {fileInfo && <p className="text-xs text-gray-400 truncate max-w-full px-2">{fileInfo.name}</p>}
+              </div>
+          )}
+          
+          {uploadState === 'completed' && fileInfo && (
+              <div className="flex flex-col items-center gap-2 w-full">
+                  <SuccessIcon className="w-10 h-10 text-green-500" />
+                  <p className="font-semibold text-green-400">Mission Loaded</p>
+                  <p className="text-sm text-gray-300 truncate max-w-full px-2 font-mono" title={fileInfo.name}>{fileInfo.name}</p>
+                  <p className="text-xs text-gray-500">{formatFileSize(fileInfo.size)}</p>
+                  <div className="mt-3 w-full flex flex-col gap-2">
+                      <button onClick={handleClick} className="w-full bg-gray-600 text-gray-200 text-sm font-bold py-2 rounded-lg hover:bg-gray-700 transition-colors">Upload Another</button>
+                      <button onClick={handleRemoveMission} className="w-full bg-red-800 text-red-100 text-sm font-bold py-2 rounded-lg hover:bg-red-700 transition-colors">Remove Mission</button>
+                  </div>
+              </div>
+          )}
+
+          {uploadState === 'error' && (
+              <div className="flex flex-col items-center gap-2 w-full">
+                  <ErrorIcon className="w-10 h-10 text-red-500" />
+                  <p className="font-semibold text-red-400">Upload Failed</p>
+                  <p className="text-xs text-gray-400 text-center max-w-full px-2">{errorMessage}</p>
+                  <button onClick={resetUploaderUI} className="mt-3 w-full bg-gray-600 text-gray-200 text-sm font-bold py-2 rounded-lg hover:bg-gray-700 transition-colors">Try Again</button>
+              </div>
+          )}
+        </div>
+
+        <div className="flex-shrink-0">
+          <label htmlFor="mode-select" className="block text-sm font-medium text-gray-300 mb-1">Mode</label>
+          <div className="relative">
+            <select 
+              id="mode-select" 
+              value={roverMode}
+              onChange={(e) => onChangeMode(e.target.value)}
+              disabled={!isConnected}
+              className="w-full bg-[#1F2937] border border-gray-600 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-800 disabled:cursor-not-allowed"
+            >
+              {ROVER_MODES.map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+              {!ROVER_MODES.includes(roverMode) && roverMode !== 'UNKNOWN' && (
+                <option key={roverMode} value={roverMode} disabled>{roverMode}</option>
+              )}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">
+              <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+            </div>
           </div>
         </div>
+
+        <div className="flex flex-col gap-3 flex-shrink-0">
+          <button 
+            onClick={onArmDisarm}
+            disabled={!isConnected}
+            className={`w-full text-white font-bold py-3 rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed ${
+              isArmed 
+                ? 'bg-red-600 hover:bg-red-700' 
+                : 'bg-green-500 hover:bg-green-600'
+            }`}
+          >
+            {isArmed ? 'Hold' : 'Start'}
+          </button>
+        </div>
+      </div>
+      
+      <div className="pt-4 border-t border-gray-700 mt-4 flex-1 min-h-0">
+         <LogManager logs={missionLogs} />
       </div>
 
-      <div className="flex flex-col gap-3">
-        <button 
-          onClick={onArmDisarm}
-          disabled={!isConnected}
-          className={`w-full text-white font-bold py-3 rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed ${
-            isArmed 
-              ? 'bg-red-600 hover:bg-red-700' 
-              : 'bg-green-500 hover:bg-green-600'
-          }`}
-        >
-          {isArmed ? 'DISARM' : 'ARM'}
-        </button>
-      </div>
     </div>
   );
 };

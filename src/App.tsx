@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import LeftSidebar from './components/LeftSidebar';
@@ -5,11 +6,11 @@ import MapView from './components/MapView';
 import PlanControls from './components/plan/PlanControls';
 import QGCWaypointTable from './components/plan/QGCWaypointTable';
 import SimulatorControls from './components/simulator/SimulatorControls';
-import MissionLogs from './components/MissionLogs';
 import { Waypoint } from './types';
 import { toQGCWPL110 } from './utils/missionParser';
 import { useSimulation } from './hooks/useSimulation';
 import { useRoverConnection } from './hooks/useRoverConnection';
+import { useMissionLogs } from './hooks/useMissionLogs';
 import { exportLogsToCSV } from './utils/logExporter';
 import { calculateDistancesForMission } from './utils/geo';
 
@@ -18,8 +19,18 @@ const App: React.FC = () => {
   const [missionWaypoints, setMissionWaypoints] = useState<Waypoint[]>([]);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const uploadInitiatedRef = useRef(false);
+  const [currentMissionFileName, setCurrentMissionFileName] = useState<string | null>(null);
 
-  // Standalone simulator hook
+  // Centralized log management via custom hook
+  const { 
+    missionLogs, 
+    createNewLog, 
+    addLogEntry, 
+    updateActiveLogStatus,
+    getActiveLogEntries
+  } = useMissionLogs();
+
+  // Standalone simulator hook - now stateless regarding logs
   const {
     roverPosition: simRoverPosition,
     activeWaypointIndex: simActiveWaypointIndex,
@@ -27,12 +38,15 @@ const App: React.FC = () => {
     isArmed: simIsArmed,
     lastExecutedCommand: simLastExecutedCommand,
     speed: simSpeed,
-    logEntries,
     play: simPlay,
     pause: simPause,
     reset: simReset,
     setSpeed: simSetSpeed
-  } = useSimulation(missionWaypoints);
+  } = useSimulation(
+    missionWaypoints, 
+    addLogEntry, // Pass the hook's function as a callback
+    () => updateActiveLogStatus('Completed') // Pass the hook's function as a callback
+  );
 
   // Hook for real rover connection
   const {
@@ -110,13 +124,19 @@ const App: React.FC = () => {
     }
   };
 
-  const handleMissionUpload = (waypoints: Waypoint[]) => {
+  const handleMissionUpload = (waypoints: Waypoint[], fileName: string) => {
+    // If a simulation was running, mark its log as incomplete
+    updateActiveLogStatus('Incomplete');
     const missionWithDistances = calculateDistancesForMission(waypoints);
     setMissionWaypoints(missionWithDistances);
+    setCurrentMissionFileName(fileName);
   };
   
   const handleClearMission = () => {
+    // If a simulation was running, mark its log as incomplete
+    updateActiveLogStatus('Incomplete');
     setMissionWaypoints([]);
+    setCurrentMissionFileName(null);
   };
 
   const handleDeleteWaypoint = (id: number) => {
@@ -147,14 +167,13 @@ const App: React.FC = () => {
     const newWaypoints: Waypoint[] = points.map((p, index) => ({
       id: index + 1,
       command: 'WAYPOINT',
-      action: 'NONE',
       lat: p.lat,
       lng: p.lng,
       alt: 50,
       frame: 3,
     }));
     const newWaypointsWithDistances = calculateDistancesForMission(newWaypoints);
-    setMissionWaypoints(newWaypointsWithDistances);
+    handleMissionUpload(newWaypointsWithDistances, `Drawn Mission - ${new Date().toLocaleTimeString()}`);
   };
 
   const handleExportMission = () => {
@@ -173,9 +192,29 @@ const App: React.FC = () => {
   };
 
   const handleExportLogs = () => {
-    exportLogsToCSV(logEntries);
+    const currentLogEntries = getActiveLogEntries();
+    if (currentLogEntries.length > 0) {
+      exportLogsToCSV(currentLogEntries);
+    } else {
+      alert("No logs for the current simulation to export.");
+    }
   };
-  
+
+  const handleSimPlay = () => {
+    // createNewLog will set the active log id
+    if (missionWaypoints.length > 0) {
+      createNewLog(currentMissionFileName || 'Unnamed Mission');
+      simPlay();
+    }
+  };
+
+  const handleSimReset = () => {
+    // Mark current log as incomplete before resetting
+    updateActiveLogStatus('Incomplete');
+    simReset();
+  };
+
+
   const isConnectedToRover = connectionStatus === 'CONNECTED_TO_ROVER';
   
   const displayRoverPosition = isConnectedToRover ? roverData.position : (viewMode === 'simulator' ? simRoverPosition : null);
@@ -203,6 +242,7 @@ const App: React.FC = () => {
             isConnected={isConnectedToRover}
             onChangeMode={handleChangeMode}
             onArmDisarm={handleArmDisarm}
+            missionLogs={missionLogs}
           />
         )}
         
@@ -230,11 +270,6 @@ const App: React.FC = () => {
               />
             </div>
           )}
-           {viewMode === 'dashboard' && (
-            <div className="flex-[0_0_180px] overflow-hidden">
-                <MissionLogs />
-            </div>
-           )}
         </div>
 
         {(viewMode === 'planning' || viewMode === 'simulator') && (
@@ -251,13 +286,13 @@ const App: React.FC = () => {
                 isArmed={simIsArmed}
                 lastExecutedCommand={simLastExecutedCommand}
                 speed={simSpeed}
-                onPlay={simPlay}
+                onPlay={handleSimPlay}
                 onPause={simPause}
-                onReset={simReset}
+                onReset={handleSimReset}
                 onSetSpeed={simSetSpeed}
                 isRoverConnected={isConnectedToRover}
                 onExportLogs={handleExportLogs}
-                hasLogs={logEntries.length > 0}
+                hasLogs={getActiveLogEntries().length > 0}
               />
             )}
           </aside>

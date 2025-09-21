@@ -208,7 +208,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
               : 'bg-green-500 hover:bg-green-600'
           }`}
         >
-          {isArmed ? 'DISARM' : 'ARM'}
+          {isArmed ? 'Hold' : 'Start'}
         </button>
       </div>
     </div>

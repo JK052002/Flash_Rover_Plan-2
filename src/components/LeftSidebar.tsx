@@ -1,17 +1,19 @@
+
 import React from 'react';
 import MissionControls from './MissionControls';
 import StatusPanel from './StatusPanel';
-import { Waypoint } from '../types';
+import { Waypoint, MissionLog } from '../types';
 import { RoverData } from '../hooks/useRoverConnection';
 
 type LeftSidebarProps = {
-  onMissionUpload: (waypoints: Waypoint[]) => void;
+  onMissionUpload: (waypoints: Waypoint[], fileName: string) => void;
   onUploadInitiated: () => void;
   onClearMission: () => void;
   roverData: RoverData;
   isConnected: boolean;
   onChangeMode: (mode: string) => void;
   onArmDisarm: () => void;
+  missionLogs: MissionLog[];
 };
 
 const LeftSidebar: React.FC<LeftSidebarProps> = ({ 
@@ -22,6 +24,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   isConnected,
   onChangeMode,
   onArmDisarm,
+  missionLogs,
 }) => {
   return (
     <aside className="w-1/4 max-w-xs flex flex-col gap-4">
@@ -34,6 +37,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         isConnected={isConnected}
         onChangeMode={onChangeMode}
         onArmDisarm={onArmDisarm}
+        missionLogs={missionLogs}
       />
       <StatusPanel 
         roverData={roverData}

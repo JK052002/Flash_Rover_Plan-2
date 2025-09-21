@@ -1,10 +1,11 @@
-import React, { useRef, useCallback } from 'react';
+
+import React, { useRef } from 'react';
 import { ChevronDownIcon } from '../icons/ChevronDownIcon';
 import { Waypoint } from '../../types';
 import { parseMissionFile, ParsedWaypoint } from '../../utils/missionParser';
 
 type PlanControlsProps = {
-  onUpload: (waypoints: Waypoint[]) => void;
+  onUpload: (waypoints: Waypoint[], fileName: string) => void;
   onExport: () => void;
   onUploadInitiated: () => void;
 }
@@ -22,7 +23,7 @@ const PlanControls: React.FC<PlanControlsProps> = ({ onUpload, onExport, onUploa
             id: index + 1,
             command: wp.command || 'WAYPOINT',
         }));
-        onUpload(mission);
+        onUpload(mission, file.name);
       } catch (error) {
         console.error("Error parsing mission file:", error);
         alert((error as Error).message);
