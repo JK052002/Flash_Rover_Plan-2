@@ -22,14 +22,12 @@ const LogManager: React.FC<Props> = ({ logs }) => {
 
   return (
     <div className="text-sm h-full flex flex-col">
-      <h3 className="font-bold mb-2 text-white flex-shrink-0">Mission Logs</h3>
-      
       {logs.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
+        <div className="flex-1 flex items-center justify-center text-gray-500 h-full">
             No mission logs to display.
         </div>
       ) : (
-        <ul className="space-y-2 overflow-y-auto flex-1 pr-2">
+        <ul className="space-y-2">
           {logs.map((log) => (
             <li key={log.id} className="bg-[#1F2937] p-2 rounded-md flex justify-between items-center">
               <div className="flex-1 min-w-0">

@@ -26,7 +26,6 @@ export const exportLogsToCSV = (logEntries: LogEntry[]) => {
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
 
-  // FIX: Cast navigator to 'any' to handle the non-standard 'msSaveBlob' property for legacy IE support.
   if ((navigator as any).msSaveBlob) { // IE 10+
     (navigator as any).msSaveBlob(blob, 'rover_simulation_log.csv');
   } else {

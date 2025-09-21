@@ -1,10 +1,11 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CrosshairIcon } from './icons/CrosshairIcon';
 import { ExpandIcon } from './icons/ExpandIcon';
 import { FullScreenToggleIcon } from './icons/FullScreenToggleIcon';
 import { RoverIcon } from './icons/RoverIcon';
-import { Waypoint } from '../types';
+import { Waypoint, ViewMode } from '../types';
 import { RulerIcon } from './icons/RulerIcon';
 import { LineIcon } from './icons/LineIcon';
 import { RectangleIcon } from './icons/RectangleIcon';
@@ -23,7 +24,7 @@ type MapViewProps = {
   roverPosition?: { lat: number; lng: number } | null;
   activeWaypointIndex?: number | null;
   heading?: number | null;
-  viewMode: 'dashboard' | 'planning' | 'simulator';
+  viewMode: ViewMode;
   isFullScreen: boolean;
   onNewMissionDrawn: (points: { lat: number, lng: number }[]) => void;
   isConnectedToRover: boolean;

@@ -54,11 +54,6 @@ export const useMissionLogs = () => {
   }, []);
 
   const getActiveLogEntries = useCallback((): LogEntry[] => {
-    if (!activeLogIdRef.current) {
-      const latestInProgress = missionLogs.find(log => log.status === 'In Progress');
-      if (latestInProgress) return latestInProgress.entries;
-      return [];
-    }
     const activeLog = missionLogs.find(log => log.id === activeLogIdRef.current);
     return activeLog?.entries ?? [];
   }, [missionLogs]);

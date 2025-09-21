@@ -34,7 +34,7 @@ export const LogPreviewModal: React.FC<LogPreviewModalProps> = ({ log, onClose }
         <div className="overflow-y-auto bg-[#111827] p-4 rounded-md flex-1 font-mono text-sm">
           <pre className="whitespace-pre-wrap break-words">
             {log.entries.length > 0 
-              ? log.entries.map(entry => `[${entry.timestamp}] ${entry.event} @ (Lat: ${entry.lat.toFixed(6)}, Lng: ${entry.lng.toFixed(6)})`).join('\n')
+              ? log.entries.map(entry => `[${new Date(entry.timestamp).toLocaleString()}] ${entry.event} @ (Lat: ${entry.lat.toFixed(6)}, Lng: ${entry.lng.toFixed(6)})`).join('\n')
               : 'No log entries for this mission.'}
           </pre>
         </div>

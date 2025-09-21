@@ -1,9 +1,9 @@
+
 import React from 'react';
 import { WrenchIcon } from './icons/WrenchIcon';
 import { FullScreenToggleIcon } from './icons/FullScreenToggleIcon';
 import { ConnectionStatus } from '../hooks/useRoverConnection';
-
-type ViewMode = 'dashboard' | 'planning' | 'simulator';
+import { ViewMode } from '../types';
 
 type HeaderProps = {
   viewMode: ViewMode;
@@ -62,6 +62,7 @@ const Header: React.FC<HeaderProps> = ({
           <button onClick={() => setViewMode('dashboard')} className={getButtonClass('dashboard')}>DashBoard</button>
           <button onClick={() => setViewMode('planning')} className={getButtonClass('planning')}>Edit Plan</button>
           <button onClick={() => setViewMode('simulator')} className={getButtonClass('simulator')} disabled={!hasMission}>Simulator</button>
+          <button onClick={() => setViewMode('live')} className={getButtonClass('live')} disabled={!hasMission}>Live Report</button>
         </nav>
       </div>
       <div className="flex items-center gap-4">

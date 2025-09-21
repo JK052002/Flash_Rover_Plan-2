@@ -11,6 +11,8 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
     const [activeWaypointIndex, setActiveWaypointIndex] = useState<number | null>(null);
     const [roverPosition, setRoverPosition] = useState<{ lat: number; lng: number } | null>(null);
     const [lastExecutedCommand, setLastExecutedCommand] = useState<string | null>(null);
+    const [completedWaypointIds, setCompletedWaypointIds] = useState<number[]>([]);
+    const [distanceToNext, setDistanceToNext] = useState(0);
 
     const isArmed = isRunning; // Rover is "armed" when the simulation is running
 
@@ -22,7 +24,6 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
     useEffect(() => {
         isRunningRef.current = isRunning;
     }, [isRunning]);
-
 
     const reset = useCallback(() => {
         setIsRunning(false);
@@ -36,29 +37,28 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
             setActiveWaypointIndex(waypoints[0].id);
             setRoverPosition(startPos);
             setLastExecutedCommand(null);
+            setCompletedWaypointIds([]);
             if (startPos) onLogEntry({ event: 'Simulation Reset', ...startPos });
         } else {
             setActiveWaypointIndex(null);
             setRoverPosition(null);
             setLastExecutedCommand(null);
+            setCompletedWaypointIds([]);
         }
     }, [waypoints, onLogEntry]);
 
-    // Effect to reset simulation when waypoints change
     useEffect(() => {
         reset();
     }, [waypoints, reset]);
     
-    // Effect to handle case where waypoints are cleared while component is mounted
     useEffect(() => {
         if (waypoints.length === 0 && (roverPosition !== null || activeWaypointIndex !== null)) {
             reset();
         }
     }, [waypoints.length, roverPosition, activeWaypointIndex, reset]);
 
-
     const animate = useCallback((timestamp: number) => {
-        if (!isRunningRef.current) return; // Stop if paused
+        if (!isRunningRef.current) return;
 
         if (!lastTimeRef.current) {
             lastTimeRef.current = timestamp;
@@ -66,46 +66,43 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
             return;
         }
 
-        const deltaTime = (timestamp - lastTimeRef.current) / 1000; // in seconds
+        const deltaTime = (timestamp - lastTimeRef.current) / 1000;
         
         setRoverPosition(prevPos => {
-            // Safety checks
             if (!prevPos || waypoints.length < 2 || currentSegmentIndexRef.current >= waypoints.length - 1) {
                 setIsRunning(false); 
                 if (waypoints.length > 0) {
                     const finalWp = waypoints[waypoints.length - 1];
                     const eventText = `Mission Complete: Reached Waypoint ${finalWp.id}`;
                     setLastExecutedCommand(eventText);
+                    setCompletedWaypointIds(prev => [...prev, finalWp.id]);
                     onLogEntry({ event: eventText, lat: finalWp.lat, lng: finalWp.lng });
                     onComplete();
                 }
                 return prevPos;
             }
 
-            const startWp = waypoints[currentSegmentIndexRef.current];
             const endWp = waypoints[currentSegmentIndexRef.current + 1];
-            if (!startWp || !endWp) { // Extra safety
+            if (!endWp) {
                  setIsRunning(false);
                  return prevPos;
             }
-
+            
+            setDistanceToNext(calculateDistance(prevPos, endWp));
             const distanceToTravel = deltaTime * BASE_SPEED_METERS_PER_SEC * speed;
-            const remainingDistanceToSegmentEnd = calculateDistance(prevPos, endWp);
 
-            if (distanceToTravel >= remainingDistanceToSegmentEnd) {
-                // Reached the end waypoint of the current segment
+            if (distanceToTravel >= distanceToNext) {
                 const eventText = `Reached Waypoint ${endWp.id}: ${endWp.command}`;
                 setLastExecutedCommand(eventText);
                 onLogEntry({ event: eventText, lat: endWp.lat, lng: endWp.lng });
-                console.log(`Executing command at Waypoint ${endWp.id}: ${endWp.command}`);
+                setCompletedWaypointIds(prev => [...prev, endWp.id]);
 
                 currentSegmentIndexRef.current++;
-                const nextWp = waypoints[currentSegmentIndexRef.current];
+                const nextWp = waypoints[currentSegmentIndexRef.current + 1];
                 if (nextWp) {
                     setActiveWaypointIndex(nextWp.id);
                     return { lat: endWp.lat, lng: endWp.lng };
                 } else {
-                    // Reached the final waypoint
                     setIsRunning(false);
                     const finalEventText = `Mission Complete: Reached Final Waypoint ${endWp.id}`;
                     setLastExecutedCommand(finalEventText);
@@ -122,7 +119,7 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
         lastTimeRef.current = timestamp;
         animationFrameRef.current = requestAnimationFrame(animate);
 
-    }, [waypoints, speed, onLogEntry, onComplete]);
+    }, [waypoints, speed, onLogEntry, onComplete, distanceToNext]);
     
     useEffect(() => {
         if(isRunning){
@@ -135,23 +132,16 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
             }
         }
         return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
+            if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
         }
     }, [isRunning, animate]);
 
-
     const play = useCallback(() => {
         if (waypoints.length < 2 || isRunning) return;
-        
         let startPos = roverPosition;
-
-        // If simulation ended, reset before playing again
         if (!startPos || currentSegmentIndexRef.current >= waypoints.length - 1) {
              reset();
              startPos = waypoints.length > 0 ? { lat: waypoints[0].lat, lng: waypoints[0].lng } : null;
-             // Reset sets isRunning to false, so we need to set it to true in the next tick
              setTimeout(() => {
                 const eventText = `Mission Started: Heading to Waypoint ${waypoints[1]?.id || 'end'}`;
                 setLastExecutedCommand(eventText);
@@ -160,7 +150,6 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
              }, 0);
              return;
         }
-        
         const eventText = `Resuming: Heading to Waypoint ${waypoints[currentSegmentIndexRef.current + 1]?.id || 'end'}`;
         setLastExecutedCommand(eventText);
         if (startPos) onLogEntry({ event: eventText, ...startPos });
@@ -171,15 +160,48 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
         setIsRunning(false);
         if (roverPosition) onLogEntry({ event: 'Simulation Paused', ...roverPosition });
     }, [onLogEntry, roverPosition]);
+    
+    const skip = useCallback(() => {
+        if (!isRunning || currentSegmentIndexRef.current >= waypoints.length - 2) return;
+        
+        const skippedWp = waypoints[currentSegmentIndexRef.current + 1];
+        onLogEntry({ event: `Skipped Waypoint ${skippedWp.id}`, lat: skippedWp.lat, lng: skippedWp.lng });
+        
+        currentSegmentIndexRef.current++;
 
-    // Cleanup on unmount
+        const newCurrentWp = waypoints[currentSegmentIndexRef.current];
+        const newTargetWp = waypoints[currentSegmentIndexRef.current + 1];
+
+        setRoverPosition({ lat: newCurrentWp.lat, lng: newCurrentWp.lng });
+        setActiveWaypointIndex(newTargetWp.id);
+        
+    }, [isRunning, waypoints, onLogEntry]);
+    
+    const goBack = useCallback(() => {
+        if (!isRunning || currentSegmentIndexRef.current <= 0) return;
+
+        const currentTargetWp = waypoints[currentSegmentIndexRef.current + 1];
+
+        setCompletedWaypointIds(prev => prev.filter(id => id !== currentTargetWp.id && id !== waypoints[currentSegmentIndexRef.current].id));
+        
+        currentSegmentIndexRef.current--;
+
+        const newCurrentWp = waypoints[currentSegmentIndexRef.current];
+        const newTargetWp = waypoints[currentSegmentIndexRef.current + 1];
+        
+        setRoverPosition({ lat: newCurrentWp.lat, lng: newCurrentWp.lng });
+        setActiveWaypointIndex(newTargetWp.id);
+        onLogEntry({ event: `Going back to Waypoint ${newCurrentWp.id}`, lat: newCurrentWp.lat, lng: newCurrentWp.lng });
+
+    }, [isRunning, waypoints, onLogEntry]);
+
     useEffect(() => {
-        return () => {
-            if (animationFrameRef.current) {
-                cancelAnimationFrame(animationFrameRef.current);
-            }
-        };
+        return () => { if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current) };
     }, []);
+    
+    // Mock values for the Live Rover Data
+    const hrms = isRunning ? (0.001 + Math.random() * 0.008).toFixed(3) : '0.000';
+    const vrms = isRunning ? (0.01 + Math.random() * 0.033).toFixed(3) : '0.000';
 
-    return { roverPosition, activeWaypointIndex, isRunning, isArmed, lastExecutedCommand, speed, play, pause, reset, setSpeed };
+    return { roverPosition, activeWaypointIndex, isRunning, isArmed, lastExecutedCommand, speed, completedWaypointIds, distanceToNext, hrms, vrms, play, pause, reset, setSpeed, skip, goBack };
 };

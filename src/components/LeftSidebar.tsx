@@ -2,6 +2,7 @@
 import React from 'react';
 import MissionControls from './MissionControls';
 import StatusPanel from './StatusPanel';
+import LogsPanel from './LogsPanel';
 import { Waypoint, MissionLog } from '../types';
 import { RoverData } from '../hooks/useRoverConnection';
 
@@ -27,7 +28,7 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
   missionLogs,
 }) => {
   return (
-    <aside className="w-1/4 max-w-xs flex flex-col gap-4">
+    <aside className="w-1/4 max-w-xs flex flex-col gap-4 h-full">
       <MissionControls 
         onMissionUpload={onMissionUpload} 
         onUploadInitiated={onUploadInitiated} 
@@ -37,12 +38,12 @@ const LeftSidebar: React.FC<LeftSidebarProps> = ({
         isConnected={isConnected}
         onChangeMode={onChangeMode}
         onArmDisarm={onArmDisarm}
-        missionLogs={missionLogs}
       />
       <StatusPanel 
         roverData={roverData}
         isConnected={isConnected}
       />
+      <LogsPanel missionLogs={missionLogs} />
     </aside>
   );
 };

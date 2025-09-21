@@ -27,3 +27,25 @@ export type Waypoint = {
   param4?: number;
   action?: string;
 };
+
+export type ViewMode = 'dashboard' | 'planning' | 'simulator' | 'live';
+
+/**
+ * A consistent data structure for feeding the Live Report view,
+ * abstracting the source (simulation vs. real rover).
+ */
+export type LiveRoverData = {
+  position: { lat: number; lng: number } | null;
+  heading: number;
+  battery: number;
+  status: 'armed' | 'disarmed';
+  mode: string;
+  rtk_status: string;
+  // Simulated values for display
+  hrms: string | number;
+  vrms: string | number;
+  imu_status: string;
+  activeWaypointIndex: number | null;
+  completedWaypointIds: number[];
+  distanceToNext: number;
+};
