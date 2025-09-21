@@ -7,6 +7,7 @@ import PlanControls from './components/plan/PlanControls';
 import QGCWaypointTable from './components/plan/QGCWaypointTable';
 import SimulatorControls from './components/simulator/SimulatorControls';
 import LiveReportView from './components/live/LiveReportView';
+import MissionLogs from './components/MissionLogs';
 import { Waypoint, ViewMode, LiveRoverData } from './types';
 import { toQGCWPL110 } from './utils/missionParser';
 import { useSimulation } from './hooks/useSimulation';
@@ -229,7 +230,6 @@ const App: React.FC = () => {
               isConnected={isConnectedToRover}
               onChangeMode={handleChangeMode}
               onArmDisarm={handleArmDisarm}
-              missionLogs={missionLogs}
             />
           )}
           
@@ -246,6 +246,12 @@ const App: React.FC = () => {
               isConnectedToRover={isConnectedToRover}
               onUpdateWaypointPosition={handleUpdateWaypointPosition}
             />
+            
+            {viewMode === 'dashboard' && (
+              <div className="flex-[0_0_180px] overflow-hidden">
+                  <MissionLogs logEntries={getActiveLogEntries()} waypoints={missionWaypoints} />
+              </div>
+            )}
             
             {viewMode !== 'dashboard' && (
               <div className="flex-[0_0_240px] overflow-hidden">
