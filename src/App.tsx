@@ -238,6 +238,8 @@ const App: React.FC = () => {
               isConnected={isConnectedToRover}
               onChangeMode={handleChangeMode}
               onArmDisarm={handleArmDisarm}
+              // FIX: The 'missionLogs' prop was missing, which is required by LeftSidebarProps.
+              missionLogs={missionLogs}
             />
           )}
           

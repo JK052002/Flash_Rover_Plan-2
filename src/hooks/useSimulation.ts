@@ -88,10 +88,11 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
                  return prevPos;
             }
             
-            setDistanceToNext(calculateDistance(prevPos, endWp));
+            const currentDistanceToNext = calculateDistance(prevPos, endWp);
+            setDistanceToNext(currentDistanceToNext);
             const distanceToTravel = deltaTime * BASE_SPEED_METERS_PER_SEC * speed;
 
-            if (distanceToTravel >= distanceToNext) {
+            if (distanceToTravel >= currentDistanceToNext) {
                 const eventText = `Reached Waypoint ${endWp.id}: ${endWp.command}`;
                 setLastExecutedCommand(eventText);
                 onLogEntry({ event: eventText, lat: endWp.lat, lng: endWp.lng });
@@ -119,7 +120,7 @@ export const useSimulation = (waypoints: Waypoint[], onLogEntry: (entry: Omit<Lo
         lastTimeRef.current = timestamp;
         animationFrameRef.current = requestAnimationFrame(animate);
 
-    }, [waypoints, speed, onLogEntry, onComplete, distanceToNext]);
+    }, [waypoints, speed, onLogEntry, onComplete]);
     
     useEffect(() => {
         if(isRunning){
