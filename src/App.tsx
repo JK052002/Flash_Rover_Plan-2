@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import LeftSidebar from './components/LeftSidebar';
@@ -15,6 +16,7 @@ import { useRoverConnection } from './hooks/useRoverConnection';
 import { useMissionLogs } from './hooks/useMissionLogs';
 import { exportLogsToCSV } from './utils/logExporter';
 import { calculateDistancesForMission } from './utils/geo';
+import ConnectionError from './components/ConnectionError';
 
 const App: React.FC = () => {
   const [viewMode, setViewMode] = useState<ViewMode>('dashboard');
@@ -167,6 +169,10 @@ const App: React.FC = () => {
     simReset();
   };
 
+  const handleCloseErrorModal = () => {
+    disconnect();
+  };
+
   const isConnectedToRover = connectionStatus === 'CONNECTED_TO_ROVER';
   
   const displayRoverPosition = isConnectedToRover ? roverData.position : simRoverPosition;
@@ -209,6 +215,8 @@ const App: React.FC = () => {
         connectionStatus={connectionStatus}
         onToggleConnection={handleToggleConnection}
       />
+      {connectionStatus === 'ERROR' && <ConnectionError onRetry={connect} onClose={handleCloseErrorModal} />}
+      
       {viewMode === 'live' ? (
         <LiveReportView 
           missionWaypoints={missionWaypoints}
@@ -277,6 +285,7 @@ const App: React.FC = () => {
                 <SimulatorControls 
                   isRunning={simIsRunning}
                   isArmed={simIsArmed}
+                  // Fix: Use `simLastExecutedCommand` which is the correct variable name for the last executed command from the simulation hook.
                   lastExecutedCommand={simLastExecutedCommand}
                   speed={simSpeed}
                   onPlay={handleSimPlay}

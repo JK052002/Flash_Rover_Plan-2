@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { io, Socket } from "socket.io-client";
 
 // IMPORTANT: Change this to your Jetson's IP address.
-const JETSON_BACKEND_URL = "http://192.168.1.105:5000";
+const JETSON_BACKEND_URL = "http://192.168.1.243:5000";
 
 export type ConnectionStatus = 'DISCONNECTED' | 'CONNECTING' | 'WAITING_FOR_ROVER' | 'CONNECTED_TO_ROVER' | 'ERROR';
 
