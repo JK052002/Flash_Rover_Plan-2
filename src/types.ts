@@ -28,7 +28,7 @@ export type Waypoint = {
   action?: string;
 };
 
-export type ViewMode = 'dashboard' | 'planning' | 'simulator' | 'live';
+export type ViewMode = 'dashboard' | 'planning' | 'live';
 
 /**
  * A consistent data structure for feeding the Live Report view,

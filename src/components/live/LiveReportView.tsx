@@ -10,20 +10,14 @@ type LiveReportViewProps = {
   missionWaypoints: Waypoint[];
   liveRoverData: LiveRoverData;
   missionName: string | null;
-  onPause: () => void;
-  onStop: () => void;
-  onSkip: () => void;
-  onGoBack: () => void;
+  isConnected: boolean;
 };
 
 const LiveReportView: React.FC<LiveReportViewProps> = ({
   missionWaypoints,
   liveRoverData,
   missionName,
-  onPause,
-  onStop,
-  onSkip,
-  onGoBack,
+  isConnected,
 }) => {
   return (
     <div className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
@@ -57,10 +51,7 @@ const LiveReportView: React.FC<LiveReportViewProps> = ({
         {/* Right Panel: Controls */}
         <aside className="w-[240px] flex-shrink-0">
           <LiveControls 
-            onPause={onPause}
-            onStop={onStop}
-            onSkip={onSkip}
-            onGoBack={onGoBack}
+            isConnected={isConnected}
           />
         </aside>
       </div>

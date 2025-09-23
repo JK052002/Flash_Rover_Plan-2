@@ -182,8 +182,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
             id="mode-select" 
             value={roverMode}
             onChange={(e) => onChangeMode(e.target.value)}
-            disabled={!isConnected}
-            className="w-full bg-[#1F2937] border border-gray-600 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-800 disabled:cursor-not-allowed"
+            className="w-full bg-[#1F2937] border border-gray-600 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             {ROVER_MODES.map(mode => (
               <option key={mode} value={mode}>{mode}</option>
@@ -202,8 +201,7 @@ const MissionControls: React.FC<MissionControlsProps> = ({
       <div className="flex flex-col gap-3">
         <button 
           onClick={onArmDisarm}
-          disabled={!isConnected}
-          className={`w-full text-white font-bold py-3 rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed ${
+          className={`w-full text-white font-bold py-3 rounded-lg transition-colors ${
             isArmed 
               ? 'bg-red-600 hover:bg-red-700' 
               : 'bg-green-500 hover:bg-green-600'

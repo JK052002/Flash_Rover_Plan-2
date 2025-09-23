@@ -61,7 +61,6 @@ const Header: React.FC<HeaderProps> = ({
         <nav className="flex items-center bg-[#1F2937] rounded-lg">
           <button onClick={() => setViewMode('dashboard')} className={getButtonClass('dashboard')}>DashBoard</button>
           <button onClick={() => setViewMode('planning')} className={getButtonClass('planning')}>Edit Plan</button>
-          <button onClick={() => setViewMode('simulator')} className={getButtonClass('simulator')} disabled={!hasMission}>Simulator</button>
           <button onClick={() => setViewMode('live')} className={getButtonClass('live')} disabled={!hasMission}>Live Report</button>
         </nav>
       </div>

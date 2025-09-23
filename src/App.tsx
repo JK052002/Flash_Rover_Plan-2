@@ -1,17 +1,14 @@
 
-
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import LeftSidebar from './components/LeftSidebar';
 import MapView from './components/MapView';
 import PlanControls from './components/plan/PlanControls';
 import QGCWaypointTable from './components/plan/QGCWaypointTable';
-import SimulatorControls from './components/simulator/SimulatorControls';
 import LiveReportView from './components/live/LiveReportView';
 import MissionLogs from './components/MissionLogs';
 import { Waypoint, ViewMode, LiveRoverData } from './types';
 import { toQGCWPL110 } from './utils/missionParser';
-import { useSimulation } from './hooks/useSimulation';
 import { useRoverConnection } from './hooks/useRoverConnection';
 import { useMissionLogs } from './hooks/useMissionLogs';
 import { exportLogsToCSV } from './utils/logExporter';
@@ -27,34 +24,8 @@ const App: React.FC = () => {
 
   const { 
     missionLogs, 
-    createNewLog, 
-    addLogEntry, 
-    updateActiveLogStatus,
     getActiveLogEntries
   } = useMissionLogs();
-
-  const {
-    roverPosition: simRoverPosition,
-    activeWaypointIndex: simActiveWaypointIndex,
-    isRunning: simIsRunning,
-    isArmed: simIsArmed,
-    lastExecutedCommand: simLastExecutedCommand,
-    speed: simSpeed,
-    completedWaypointIds: simCompletedIds,
-    distanceToNext: simDistanceToNext,
-    hrms: simHrms,
-    vrms: simVrms,
-    play: simPlay,
-    pause: simPause,
-    reset: simReset,
-    setSpeed: simSetSpeed,
-    skip: simSkip,
-    goBack: simGoBack,
-  } = useSimulation(
-    missionWaypoints, 
-    addLogEntry,
-    () => updateActiveLogStatus('Completed')
-  );
 
   const {
     connectionStatus,
@@ -63,10 +34,6 @@ const App: React.FC = () => {
     disconnect,
     sendCommand,
   } = useRoverConnection();
-
-  useEffect(() => {
-    if (viewMode !== 'simulator' && viewMode !== 'live' && simIsRunning) simPause();
-  }, [viewMode, simIsRunning, simPause]);
 
   useEffect(() => {
     const onFullScreenChange = () => setIsFullScreen(!!document.fullscreenElement);
@@ -106,14 +73,12 @@ const App: React.FC = () => {
   };
 
   const handleMissionUpload = (waypoints: Waypoint[], fileName: string) => {
-    if (simIsRunning) updateActiveLogStatus('Incomplete');
     const missionWithDistances = calculateDistancesForMission(waypoints);
     setMissionWaypoints(missionWithDistances);
     setCurrentMissionFileName(fileName);
   };
   
   const handleClearMission = () => {
-    if (simIsRunning) updateActiveLogStatus('Incomplete');
     setMissionWaypoints([]);
     setCurrentMissionFileName(null);
   };
@@ -151,57 +116,37 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleExportLogs = () => {
-    const entries = getActiveLogEntries();
-    if (entries.length > 0) exportLogsToCSV(entries);
-    else alert("No logs for the current simulation to export.");
-  };
-  
-  const handleSimPlay = () => {
-    if (missionWaypoints.length > 0) {
-      createNewLog(currentMissionFileName || 'Unnamed Mission');
-      simPlay();
-    }
-  };
-
-  const handleSimReset = () => {
-    updateActiveLogStatus('Incomplete');
-    simReset();
-  };
-
   const handleCloseErrorModal = () => {
     disconnect();
   };
 
   const isConnectedToRover = connectionStatus === 'CONNECTED_TO_ROVER';
   
-  const displayRoverPosition = isConnectedToRover ? roverData.position : simRoverPosition;
-  const displayActiveWaypointIndex = isConnectedToRover ? roverData.current_waypoint_id : simActiveWaypointIndex;
+  const displayRoverPosition = isConnectedToRover ? roverData.position : null;
+  const displayActiveWaypointIndex = isConnectedToRover ? roverData.current_waypoint_id : null;
   const displayRoverHeading = isConnectedToRover ? roverData.heading : null;
 
-  // Construct a unified data object for the live view
   const liveRoverData: LiveRoverData = isConnectedToRover ? {
       ...roverData,
       activeWaypointIndex: roverData.current_waypoint_id,
-      // Placeholder values for real rover
       hrms: 'N/A', 
       vrms: 'N/A',
       imu_status: 'ALIGNED',
       completedWaypointIds: [], // This would need to come from the rover
       distanceToNext: 0, // This would need to be calculated
   } : {
-      position: simRoverPosition,
-      heading: 0, // Sim doesn't have heading yet
-      battery: 81, // Mock value
-      status: simIsArmed ? 'armed' : 'disarmed',
-      mode: 'AUTO', // Mock value
-      rtk_status: 'RTK Fixed', // Mock value
-      hrms: simHrms,
-      vrms: simVrms,
-      imu_status: 'ALIGNED', // Mock value
-      activeWaypointIndex: simActiveWaypointIndex,
-      completedWaypointIds: simCompletedIds,
-      distanceToNext: simDistanceToNext,
+      position: null,
+      heading: 0,
+      battery: 0,
+      status: 'disarmed',
+      mode: 'UNKNOWN',
+      rtk_status: 'N/A',
+      hrms: '0.000',
+      vrms: '0.000',
+      imu_status: 'UNALIGNED',
+      activeWaypointIndex: null,
+      completedWaypointIds: [],
+      distanceToNext: 0,
   };
 
   return (
@@ -222,10 +167,7 @@ const App: React.FC = () => {
           missionWaypoints={missionWaypoints}
           liveRoverData={liveRoverData}
           missionName={currentMissionFileName}
-          onPause={simPause}
-          onStop={handleSimReset}
-          onSkip={simSkip}
-          onGoBack={simGoBack}
+          isConnected={isConnectedToRover}
         />
       ) : (
         <main className="flex-1 flex p-4 gap-4 overflow-hidden">
@@ -238,7 +180,6 @@ const App: React.FC = () => {
               isConnected={isConnectedToRover}
               onChangeMode={handleChangeMode}
               onArmDisarm={handleArmDisarm}
-              // FIX: The 'missionLogs' prop was missing, which is required by LeftSidebarProps.
               missionLogs={missionLogs}
             />
           )}
@@ -275,30 +216,13 @@ const App: React.FC = () => {
             )}
           </div>
 
-          {(viewMode === 'planning' || viewMode === 'simulator') && (
+          {viewMode === 'planning' && (
             <aside className="w-1/4 max-w-xs flex flex-col">
-              {viewMode === 'planning' ? (
-                <PlanControls 
-                  onUpload={handleMissionUpload} 
-                  onExport={handleExportMission} 
-                  onUploadInitiated={handleUploadInitiated}
-                />
-              ) : (
-                <SimulatorControls 
-                  isRunning={simIsRunning}
-                  isArmed={simIsArmed}
-                  // Fix: Use `simLastExecutedCommand` which is the correct variable name for the last executed command from the simulation hook.
-                  lastExecutedCommand={simLastExecutedCommand}
-                  speed={simSpeed}
-                  onPlay={handleSimPlay}
-                  onPause={simPause}
-                  onReset={handleSimReset}
-                  onSetSpeed={simSetSpeed}
-                  isRoverConnected={isConnectedToRover}
-                  onExportLogs={handleExportLogs}
-                  hasLogs={getActiveLogEntries().length > 0}
-                />
-              )}
+              <PlanControls 
+                onUpload={handleMissionUpload} 
+                onExport={handleExportMission} 
+                onUploadInitiated={handleUploadInitiated}
+              />
             </aside>
           )}
         </main>

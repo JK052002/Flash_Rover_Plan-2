@@ -1,38 +1,21 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import LeftSidebar from './components/LeftSidebar';
 import MapView from './components/MapView';
 import PlanControls from './components/plan/PlanControls';
 import QGCWaypointTable from './components/plan/QGCWaypointTable';
-import SimulatorControls from './components/simulator/SimulatorControls';
 import MissionLogs from './components/MissionLogs';
 import { Waypoint } from './types';
 import { toQGCWPL110 } from './utils/missionParser';
-import { useSimulation } from './hooks/useSimulation';
 import { useRoverConnection } from './hooks/useRoverConnection';
-import { exportLogsToCSV } from './utils/logExporter';
 import { calculateDistancesForMission } from './utils/geo';
 
 const App: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'dashboard' | 'planning' | 'simulator'>('dashboard');
+  const [viewMode, setViewMode] = useState<'dashboard' | 'planning'>('dashboard');
   const [missionWaypoints, setMissionWaypoints] = useState<Waypoint[]>([]);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const uploadInitiatedRef = useRef(false);
-
-  // Standalone simulator hook
-  const {
-    roverPosition: simRoverPosition,
-    activeWaypointIndex: simActiveWaypointIndex,
-    isRunning: simIsRunning,
-    isArmed: simIsArmed,
-    lastExecutedCommand: simLastExecutedCommand,
-    speed: simSpeed,
-    logEntries,
-    play: simPlay,
-    pause: simPause,
-    reset: simReset,
-    setSpeed: simSetSpeed
-  } = useSimulation(missionWaypoints);
 
   // Hook for real rover connection
   const {
@@ -42,14 +25,6 @@ const App: React.FC = () => {
     disconnect,
     sendCommand,
   } = useRoverConnection();
-
-  useEffect(() => {
-    // Pause local simulation if user navigates away from the simulator tab
-    if (viewMode !== 'simulator' && simIsRunning) {
-      simPause();
-    }
-  }, [viewMode, simIsRunning, simPause]);
-
 
   useEffect(() => {
     const onFullScreenChange = () => {
@@ -171,14 +146,10 @@ const App: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleExportLogs = () => {
-    exportLogsToCSV(logEntries);
-  };
-  
   const isConnectedToRover = connectionStatus === 'CONNECTED_TO_ROVER';
   
-  const displayRoverPosition = isConnectedToRover ? roverData.position : (viewMode === 'simulator' ? simRoverPosition : null);
-  const displayActiveWaypointIndex = isConnectedToRover ? roverData.current_waypoint_id : (viewMode === 'simulator' ? simActiveWaypointIndex : null);
+  const displayRoverPosition = isConnectedToRover ? roverData.position : null;
+  const displayActiveWaypointIndex = isConnectedToRover ? roverData.current_waypoint_id : null;
   const displayRoverHeading = isConnectedToRover ? roverData.heading : null;
 
   return (
@@ -236,29 +207,13 @@ const App: React.FC = () => {
            )}
         </div>
 
-        {(viewMode === 'planning' || viewMode === 'simulator') && (
+        {viewMode === 'planning' && (
           <aside className="w-1/4 max-w-xs flex flex-col">
-            {viewMode === 'planning' ? (
-              <PlanControls 
-                onUpload={handleMissionUpload} 
-                onExport={handleExportMission} 
-                onUploadInitiated={handleUploadInitiated}
-              />
-            ) : ( // Simulator View
-              <SimulatorControls 
-                isRunning={simIsRunning}
-                isArmed={simIsArmed}
-                lastExecutedCommand={simLastExecutedCommand}
-                speed={simSpeed}
-                onPlay={simPlay}
-                onPause={simPause}
-                onReset={simReset}
-                onSetSpeed={simSetSpeed}
-                isRoverConnected={isConnectedToRover}
-                onExportLogs={handleExportLogs}
-                hasLogs={logEntries.length > 0}
-              />
-            )}
+            <PlanControls 
+              onUpload={handleMissionUpload} 
+              onExport={handleExportMission} 
+              onUploadInitiated={handleUploadInitiated}
+            />
           </aside>
         )}
       </main>
