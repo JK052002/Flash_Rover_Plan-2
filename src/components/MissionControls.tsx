@@ -1,5 +1,5 @@
 
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import { FolderIcon } from './icons/FolderIcon';
 import { LoadingIcon } from './icons/LoadingIcon';
 import { SuccessIcon } from './icons/SuccessIcon';
@@ -38,6 +38,17 @@ const MissionControls: React.FC<MissionControlsProps> = ({
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [fileInfo, setFileInfo] = useState<{ name: string; size: number } | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
+  const [selectedMode, setSelectedMode] = useState(roverMode);
+
+  useEffect(() => {
+    setSelectedMode(roverMode);
+  }, [roverMode]);
+
+  const handleModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newMode = e.target.value;
+    setSelectedMode(newMode);
+    onChangeMode(newMode);
+  };
 
   const resetUploaderUI = () => {
     setUploadState('idle');
@@ -180,16 +191,16 @@ const MissionControls: React.FC<MissionControlsProps> = ({
         <div className="relative">
           <select 
             id="mode-select" 
-            value={roverMode}
-            onChange={(e) => onChangeMode(e.target.value)}
+            value={selectedMode}
+            onChange={handleModeChange}
             className="w-full bg-[#1F2937] border border-gray-600 rounded-md px-3 py-2 appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             {ROVER_MODES.map(mode => (
               <option key={mode} value={mode}>{mode}</option>
             ))}
              {/* If rover reports a mode not in our list, show it but disabled */}
-            {!ROVER_MODES.includes(roverMode) && roverMode !== 'UNKNOWN' && (
-              <option key={roverMode} value={roverMode} disabled>{roverMode}</option>
+            {!ROVER_MODES.includes(selectedMode) && selectedMode !== 'UNKNOWN' && (
+              <option key={selectedMode} value={selectedMode} disabled>{selectedMode}</option>
             )}
           </select>
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-400">

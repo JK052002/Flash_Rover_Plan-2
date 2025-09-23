@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { LoadingIcon } from './icons/LoadingIcon';
@@ -56,7 +57,7 @@ Please format the output as plain text with markdown for lists. Keep it clear an
 
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="error-title">
+    <div className="fixed inset-0 z-[2000] flex items-center justify-center bg-black bg-opacity-75 backdrop-blur-sm" role="alertdialog" aria-modal="true" aria-labelledby="error-title">
       <div className="bg-[#1F2937] text-white rounded-lg shadow-xl w-full max-w-2xl p-6 flex flex-col gap-4 m-4">
         <div className="flex items-center gap-3">
           <ErrorIcon className="w-8 h-8 text-red-500 flex-shrink-0" />
