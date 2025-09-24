@@ -25,5 +25,6 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": ["src", "hooks", "components", "utils", "App.tsx", "index.tsx", "types.ts", "vite.config.ts"]
 }
